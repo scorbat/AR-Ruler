@@ -13,20 +13,15 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
+    var dotNodes = [SCNNode]()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Set the view's delegate
         sceneView.delegate = self
         
-        // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
-        
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // Set the scene to the view
-        sceneView.scene = scene
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -45,30 +40,54 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Pause the view's session
         sceneView.session.pause()
     }
-
-    // MARK: - ARSCNViewDelegate
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
-    }
-*/
+    //MARK - ARSCNViewDelegate methods
     
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        // Present an error message to the user
-        
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let location = touches.first?.location(in: sceneView) {
+            if let query = sceneView.raycastQuery(from: location, allowing: .existingPlaneGeometry, alignment: .any) {
+                let results = sceneView.session.raycast(query)
+                
+                if let result = results.first {
+                    addDot(at: result)
+                }
+            }
+        }
     }
     
-    func sessionWasInterrupted(_ session: ARSession) {
-        // Inform the user that the session has been interrupted, for example, by presenting an overlay
+    //MARK: - my functions
+    
+    func addDot(at result: ARRaycastResult) {
+        let sphere = SCNSphere(radius: 0.005)
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.red
+        sphere.materials = [material]
         
+        let node = SCNNode(geometry: sphere)
+        node.position = SCNVector3(
+            x: result.worldTransform.columns.3.x,
+            y: result.worldTransform.columns.3.y,
+            z: result.worldTransform.columns.3.z
+        )
+        
+        sceneView.scene.rootNode.addChildNode(node)
+        dotNodes.append(node)
+        
+        if dotNodes.count >= 2 {
+            calculate()
+        }
     }
     
-    func sessionInterruptionEnded(_ session: ARSession) {
-        // Reset tracking and/or remove existing anchors if consistent tracking is required
+    func calculate() {
+        let start = dotNodes.first!
+        let end = dotNodes.last!
         
+        let a = end.position.x - start.position.x
+        let b = end.position.y - start.position.y
+        let c = end.position.z - start.position.z
+        
+        let distance = sqrt(pow(a, 2) + pow(b, 2) + pow(c, 2))
+        
+        print(abs(distance))
     }
 }
