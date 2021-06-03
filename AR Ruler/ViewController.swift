@@ -14,6 +14,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet var sceneView: ARSCNView!
     
     var dotNodes = [SCNNode]()
+    var textNode = SCNNode()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,9 +42,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
     }
     
-    //MARK - ARSCNViewDelegate methods
+    //MARK: - ARSCNViewDelegate methods
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if dotNodes.count >= 2 {
+            for dot in dotNodes {
+                dot.removeFromParentNode()
+            }
+            dotNodes = [SCNNode]()
+        }
+        
         if let location = touches.first?.location(in: sceneView) {
             if let query = sceneView.raycastQuery(from: location, allowing: .existingPlaneGeometry, alignment: .any) {
                 let results = sceneView.session.raycast(query)
@@ -92,13 +100,15 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     func updateText(_ text: String, at position: SCNVector3) {
+        textNode.removeFromParentNode()
+        
         let textGeometry = SCNText(string: text, extrusionDepth: 1.0)
         textGeometry.firstMaterial?.diffuse.contents = UIColor.red
         
-        let node = SCNNode(geometry: textGeometry)
-        node.position = SCNVector3(x: position.x, y: position.y + 0.01, z: position.z)
-        node.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        textNode = SCNNode(geometry: textGeometry)
+        textNode.position = SCNVector3(x: position.x, y: position.y + 0.01, z: position.z)
+        textNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
         
-        sceneView.scene.rootNode.addChildNode(node)
+        sceneView.scene.rootNode.addChildNode(textNode)
     }
 }
